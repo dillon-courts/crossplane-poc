@@ -1,0 +1,46 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compliant-application
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.bfsi/v1alpha1
+    kind: CompliantApplication
+  resources:
+    - name: rds
+      base:
+        apiVersion: aws.platform.bfsi/v1alpha1
+        kind: CompliantRDSInstance
+      patches:
+        - fromFieldPath: spec.database.size
+          toFieldPath: spec.allocatedStorage
+
+    - name: app-deployment
+      base:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          namespace: app-space
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: hello-world
+          template:
+            metadata:
+              labels:
+                app: hello-world
+            spec:
+              containers:
+                - name: api
+                  image: ghcr.io/sample-org/hello-world-api:latest
+                  ports:
+                    - containerPort: 8080
+                  env:
+                    - name: DATABASE_URL
+                      valueFrom:
+                        secretKeyRef:
+                          name: db-credentials
+                          key: url
+      providerConfigRef:
+        name: workload-cluster

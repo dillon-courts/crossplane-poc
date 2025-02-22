@@ -1,0 +1,10 @@
+apiVersion: aws.platform.bfsi/v1alpha1
+kind: CompliantPostgresRDSInstance
+metadata:
+  name: my-secure-db
+spec:
+  parameters:
+    instanceClass: "db.t3.micro"  # Choose the instance type
+    storageGB: 20                 # Storage size in GB
+    username: "dbadmin"           # The admin username for the DB
+    dbName: "mydatabase"          # Name of the database

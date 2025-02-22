@@ -1,0 +1,29 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compliant-ecr
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.bfsi/v1alpha1
+    kind: CompliantECRRepository
+  mode: Pipeline
+  pipeline:
+    - step: transform-input
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: apiextensions.crossplane.io/v1
+        kind: CompositionFunctionInput
+        resources:
+          - name: ecr-repo
+            base:
+              apiVersion: ecr.aws.upbound.io/v1beta1
+              kind: Repository
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  region: us-east-2
+                  imageTagMutability: IMMUTABLE
+                  encryptionConfiguration:
+                    - encryptionType: AES256

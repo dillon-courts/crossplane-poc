@@ -1,0 +1,26 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: compliantecrrepositories.aws.platform.bfsi
+spec:
+  group: aws.platform.bfsi
+  names:
+    kind: CompliantECRRepository
+    plural: compliantecrrepositories
+  claimNames:
+    kind: CompliantECRRepositoryClaim
+    plural: compliantecrrepositoryclaims
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:

@@ -1,0 +1,112 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compliant-apprunner
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.bfsi/v1alpha1
+    kind: CompliantAppRunner
+  mode: Pipeline
+  pipeline:
+    - step: provision-iam-role
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: apiextensions.crossplane.io/v1
+        kind: CompositionFunctionInput
+        resources:
+          - name: apprunner-role
+            patches:
+              - fromFieldPath: "status.atProvider.arn"
+                toFieldPath: "metadata.annotations[crossplane.io/external-name]"
+                type: ToEnvironmentFieldPath
+                policy:
+                  fromFieldPath: Required
+            base:
+              apiVersion: iam.aws.upbound.io/v1beta1
+              kind: Role
+              metadata:
+                labels:
+                  apprunner.role.name: apprunner-role
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  assumeRolePolicy: |
+                    {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Principal": {
+                            "Service": "build.apprunner.amazonaws.com"
+                          },
+                          "Action": "sts:AssumeRole"
+                        }
+                      ]
+                    }
+    - step: attach-iam-policy
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: apiextensions.crossplane.io/v1
+        kind: CompositionFunctionInput
+        resources:
+          - name: apprunner-role-policy
+            base:
+              apiVersion: iam.aws.upbound.io/v1beta1
+              kind: RolePolicyAttachment
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  policyArn: arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+                  roleSelector:
+                    matchLabels:
+                      apprunner.role.name: apprunner-role
+
+    - step: provision-apprunner
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: apiextensions.crossplane.io/v1
+        kind: CompositionFunctionInput
+        resources:
+          - name: apprunner-service
+            patches:
+              - fromFieldPath: "metadata.annotations[crossplane.io/external-name]"
+                toFieldPath: "spec.forProvider.sourceConfiguration[0].authenticationConfiguration[0].accessRoleArn"
+                type: FromEnvironmentFieldPath
+                policy:
+                  fromFieldPath: Required
+              - fromFieldPath: "spec.parameters.serviceName"
+                toFieldPath: "spec.forProvider.serviceName"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+              - fromFieldPath: "spec.parameters.imageIdentifier"
+                toFieldPath: "spec.forProvider.sourceConfiguration[0].imageRepository[0].imageIdentifier"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+            base:
+              apiVersion: apprunner.aws.upbound.io/v1beta1
+              kind: Service
+              metadata:
+                name: "apprunner"
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  region: us-east-2
+                  serviceName: ""
+                  sourceConfiguration:
+                    - imageRepository:
+                        - imageIdentifier: ""
+                          imageRepositoryType: ECR
+                          imageConfiguration:
+                            - port: "8080"
+                      authenticationConfiguration:
+                        - accessRoleArn: ""
+                  tags:
+                    Environment: Production

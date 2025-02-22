@@ -1,0 +1,8 @@
+apiVersion: aws.platform.bfsi/v1alpha1
+kind: CompliantAppRunner
+metadata:
+  name: my-secure-app
+spec:
+  parameters:
+    serviceName: my-secure-app
+    imageIdentifier: "872222116942.dkr.ecr.us-east-2.amazonaws.com/my-secure-repo-f444p:0.0.2"

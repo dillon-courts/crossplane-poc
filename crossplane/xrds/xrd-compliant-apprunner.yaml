@@ -1,0 +1,35 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: compliantapprunners.aws.platform.bfsi
+spec:
+  group: aws.platform.bfsi
+  names:
+    kind: CompliantAppRunner
+    plural: compliantapprunners
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  properties:
+                    serviceName:
+                      type: string
+                      description: "The name of the App Runner service"
+                    imageIdentifier:
+                      type: string
+                      description: "The full URI of the container image in ECR"
+                    generatedPassword:
+                      type: string
+                      description: "generated password for database"
+                  required:
+                    - serviceName
+                    - imageIdentifier

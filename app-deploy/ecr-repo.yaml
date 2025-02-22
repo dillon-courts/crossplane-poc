@@ -1,0 +1,6 @@
+apiVersion: aws.platform.bfsi/v1alpha1
+kind: CompliantECRRepository
+metadata:
+  name: my-secure-repo
+spec:
+  parameters:

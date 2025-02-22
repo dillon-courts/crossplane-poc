@@ -1,0 +1,84 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: compliant-postgres-rds
+spec:
+  compositeTypeRef:
+    apiVersion: aws.platform.bfsi/v1alpha1
+    kind: CompliantPostgresRDSInstance
+  mode: Pipeline
+  pipeline:
+    - step: provision-rds
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: rds-instance
+            base:
+              apiVersion: rds.aws.upbound.io/v1beta2
+              kind: Instance
+              metadata:
+                name: compliant-postgres-db
+              spec:
+                providerConfigRef:
+                  name: default
+                forProvider:
+                  region: us-east-2
+                  instanceClass: db.t3.micro
+                  engine: postgres
+                  engineVersion: "14"
+                  allocatedStorage: 20
+                  dbName: "example"
+                  username: "dbadmin"
+                  autoGeneratePassword: true
+                  passwordSecretRef:
+                    key: password
+                    name: example-dbinstance
+                    namespace: default
+                  publiclyAccessible: true
+                  skipFinalSnapshot: true
+                  vpcSecurityGroupIds: []
+                writeConnectionSecretToRef:
+                  name: example-dbinstance-out
+                  namespace: default
+            patches:
+              - fromFieldPath: "spec.parameters.instanceClass"
+                toFieldPath: "spec.forProvider.instanceClass"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+
+              - fromFieldPath: "spec.parameters.storageGB"
+                toFieldPath: "spec.forProvider.allocatedStorage"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+
+              - fromFieldPath: "spec.parameters.username"
+                toFieldPath: "spec.forProvider.username"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+
+              - fromFieldPath: "spec.parameters.dbName"
+                toFieldPath: "spec.forProvider.dbName"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+
+              - fromFieldPath: "spec.parameters.dbName"
+                toFieldPath: "spec.forProvider.passwordSecretRef.name"
+                type: FromCompositeFieldPath
+                policy:
+                  fromFieldPath: Required
+
+              - type: CombineFromComposite
+                combine:
+                  variables:
+                    - fromFieldPath: spec.parameters.dbName
+                  strategy: string
+                  string:
+                    fmt: "%s-connection-string"
+                toFieldPath: spec.writeConnectionSecretToRef.name
